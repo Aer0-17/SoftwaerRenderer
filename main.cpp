@@ -1,8 +1,13 @@
 #include "tgaimage.h"
+#include "model.h"
+#include "geometry.h"
+#include <vector>
+#include <cmath>
 #include <iostream>
 #include <time.h>
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
+const TGAColor green   = TGAColor(0, 255,   0,   255);
 
 void line_final(int x1, int y1, int x2, int y2, TGAImage &image, TGAColor color) { 
 #if 0
@@ -255,16 +260,34 @@ void line_6(int x1, int y1, int x2, int y2, TGAImage &image, TGAColor color)
 	}
 }
 
+void triangle(Vec2i *v, const int width, const int height,TGAImage &image, TGAColor color)
+{
+	/*
+	int x0 = (v[0].x + 1.) * width / 2.;
+	int y0 = (v[0].y + 1.) * height / 2.;
+	int x1 = (v[1].x + 1.) * width / 2.;
+	int y1 = (v[1].y + 1.) * height / 2.;
+	int x2 = (v[2].x + 1.) * width / 2.;
+	int y2 = (v[2].y + 1.) * height / 2.;
+	*/
+	//line_6(x0,y0,x1,y1,image,color);
+	//line_6(x1,y1,x2,y2,image,color);
+	//line_6(x2,y2,x0,y0,image,color);
+	line_6(v[0].x,v[0].y,v[1].x,v[1].y,image,color);
+	line_6(v[1].x,v[1].y,v[2].x,v[2].y,image,color);
+	line_6(v[2].x,v[2].y,v[0].x,v[0].y,image,color);
 
+}
+#if 0
 int main(int argc, char** argv) {
 	TGAImage image(100, 100, TGAImage::RGB);
 	//image.set(52, 41, red);
 	clock_t start, finish;
 	start = clock();
 	//line_4(10, 20, 100, 100, image, red);
-	line_4(13, 20, 80, 40, image, white); 
-	line_4(20, 13, 40, 80, image, red); 
-	line_4(80, 40, 13, 20, image, red);
+	line_6(13, 20, 80, 40, image, white); 
+	line_6(20, 13, 40, 80, image, red); 
+	line_6(80, 40, 13, 20, image, red);
 	finish = clock();
 	double duration = (double)(finish - start) / 1000;
 	std::cout << "draw time: " << duration << "ms"<< std::endl;
@@ -272,4 +295,53 @@ int main(int argc, char** argv) {
 	image.write_tga_file("output.tga");
 	return 0;
 }
+#endif
+#if 0
+int main(int argc, char** argv) {
+    /*if (2==argc) {
+        model = new Model(argv[1]);
+    } else {
+        model = new Model("obj/african_head.obj");
+    }*/
+	Model *model = NULL;
+	model = new Model("obj/african_head.obj");
+	const int width  = 800;
+	const int height = 800;
 
+    TGAImage image(width, height, TGAImage::RGB);
+    // 循环模型里的所有三角形
+	for (int i = 0; i < model->nfaces(); i++) {
+	std::vector<int> face = model->face(i);
+
+		// 循环三角形三个顶点，每两个顶点连一条线
+		for (int j = 0; j < 3; j++) {
+			Vec3f v0 = model->vert(face[j]);
+			Vec3f v1 = model->vert(face[(j + 1) % 3]);
+			
+			// 因为模型空间取值范围是 [-1, 1]^3，我们要把模型坐标平移到屏幕坐标中
+			// 下面 (point + 1) * width(height) / 2 的操作学名为视口变换（Viewport Transformation）
+			int x0 = (v0.x + 1.) * width / 2.;
+			int y0 = (v0.y + 1.) * height / 2.;
+			int x1 = (v1.x + 1.) * width / 2.;
+			int y1 = (v1.y + 1.) * height / 2.;
+			
+			// 画线
+			line_6(x0, y0, x1, y1, image, white);
+		}
+	}
+    image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+    image.write_tga_file("output.tga");
+    delete model;
+    return 0;
+}
+#endif
+int main(int argc, char** argv) {
+	const int width  = 200;
+	const int height = 200;
+	TGAImage image(width, height, TGAImage::RGB);
+	Vec2i v[3] = {Vec2i(20, 30), Vec2i(80, 90), Vec2i(40, 120)};
+	triangle(v, width, height, image, red);
+    image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+    image.write_tga_file("output.tga");
+	return 0;
+}
