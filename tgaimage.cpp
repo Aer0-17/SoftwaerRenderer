@@ -156,13 +156,13 @@ bool TGAImage::load_rle_data(std::ifstream &in)
             }
             for(int i = 0; i < chunkheader; i++)
             {
-                for(int t = 0; t < bytespp; y++)
+                for(int t = 0; t < bytespp; t++)
                 {
                     data[currentbyte++] = colobuffer.raw[t];
                 }
                 currentpixel++;
                 if(currentpixel > pixecount) {
-                    std::cout << "Too many pixels read" << endl;
+                    std::cout << "Too many pixels read" << std::endl;
                     return false;
                 }
             }

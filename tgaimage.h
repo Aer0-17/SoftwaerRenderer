@@ -42,7 +42,7 @@ struct TGAColor
     TGAColor(unsigned char R, unsigned char G, unsigned char B, unsigned A) : b(B), g(G), r(R), a(A), bytespp(4) {
 
     }
-    TGAColor(int v, int bpp) : val(v), bytespp(bpp) {
+	TGAColor(int v, int bpp) : val(v), bytespp(bpp) {
 	}
 
 	TGAColor(const TGAColor &c) : val(c.val), bytespp(c.bytespp) {
@@ -61,6 +61,7 @@ struct TGAColor
 		}
 		return *this;
 	}
+    
 };
 
 
@@ -84,13 +85,13 @@ public:
     TGAImage(const TGAImage &img);
     ~TGAImage();
     TGAImage & operator =(const TGAImage &img);
-    bool set(int x, int y, TGAColor c);
     bool flip_vertically();     //垂直翻转？
     bool flip_horizontally();   //水平翻转？
     bool write_tga_file(const char *file_name, bool rel = true);
     bool read_tga_file(const char *file_name);
     bool scale(int w, int h);
 	TGAColor get(int x, int y);
+	bool set(int x, int y, TGAColor c);
     int get_width();
 	int get_height();
 	int get_bytespp();
