@@ -13,6 +13,7 @@ template <class t> struct Vec2 {
 	};
 	Vec2() : u(0), v(0) {}
 	Vec2(t _u, t _v) : u(_u),v(_v) {}
+	inline t       operator ^(const Vec2<t> &V) const { return x*V.v - y*V.u; }
 	inline Vec2<t> operator +(const Vec2<t> &V) const { return Vec2<t>(u+V.u, v+V.v); }
 	inline Vec2<t> operator -(const Vec2<t> &V) const { return Vec2<t>(u-V.u, v-V.v); }
 	inline Vec2<t> operator *(float f)          const { return Vec2<t>(u*f, v*f); }

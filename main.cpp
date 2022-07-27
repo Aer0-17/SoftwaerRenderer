@@ -278,6 +278,37 @@ void triangle(Vec2i *v, const int width, const int height,TGAImage &image, TGACo
 	line_6(v[2].x,v[2].y,v[0].x,v[0].y,image,color);
 
 }
+
+Vec3i crossProduct(Vec2i *v, Vec2i P)
+{
+	Vec2i AB(v[1].x - v[0].x, v[1].y - v[0].y);
+	Vec2i BC(v[2].x - v[1].x, v[2].y - v[1].y);
+	Vec2i CA(v[0].x - v[2].x, v[0].y - v[2].y);
+
+	Vec2i AP(P.x - v[0].x, P.y - v[0].y);
+	Vec2i BP(P.x - v[1].x, P.y - v[1].y);
+	Vec2i CP(P.x - v[2].x, P.y - v[2].y);
+
+	return Vec3i(AB^AP, BC^BP, CA^CP);
+}
+
+void drawSingleTriangle(int width, int height, Vec2i * v, TGAImage &image, TGAColor color)
+{
+	Vec2i P;
+	for(P.x = 0; P.x <= width; P.x++)
+	{
+		for(P.y = 0; P.y <= height; P.y++)
+		{
+			Vec3i ret = crossProduct(v, P);
+
+			if(((ret.x>0)?((ret.y>0)?(ret.z>0):0):0) || ((ret.x<0)?((ret.y<0)?(ret.z<0):0):0))
+			{
+				image.set(P.x, P.y, color);
+			}
+		}
+
+	}
+}
 #if 0
 int main(int argc, char** argv) {
 	TGAImage image(100, 100, TGAImage::RGB);
@@ -335,12 +366,33 @@ int main(int argc, char** argv) {
     return 0;
 }
 #endif
+#if 0
 int main(int argc, char** argv) {
 	const int width  = 200;
 	const int height = 200;
 	TGAImage image(width, height, TGAImage::RGB);
-	Vec2i v[3] = {Vec2i(20, 30), Vec2i(80, 90), Vec2i(40, 120)};
-	triangle(v, width, height, image, red);
+	Vec2i v1[3] = {Vec2i(10, 70),   Vec2i(50, 160),  Vec2i(70, 80)};
+	Vec2i v2[3] = {Vec2i(180, 50),  Vec2i(150, 1),   Vec2i(70, 180)};
+	Vec2i v3[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)};
+	triangle(v1, width, height, image, red);
+	triangle(v2, width, height, image, white);
+	triangle(v3, width, height, image, green);
+    image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+    image.write_tga_file("output.tga");
+	return 0;
+}
+#endif
+int main(int argc, char** argv) {
+	const int width  = 200;
+	const int height = 200;
+	TGAImage image(width, height, TGAImage::RGB);
+	Vec2i v1[3] = {Vec2i(10, 70),   Vec2i(50, 160),  Vec2i(70, 80)};
+	//Vec2i v2[3] = {Vec2i(180, 50),  Vec2i(150, 1),   Vec2i(70, 180)};
+	//Vec2i v3[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)};
+
+	drawSingleTriangle(width, height, v1, image, red);
+	//triangle(v2, width, height, image, white);
+	//triangle(v3, width, height, image, green);
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
     image.write_tga_file("output.tga");
 	return 0;
