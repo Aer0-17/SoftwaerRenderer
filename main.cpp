@@ -300,7 +300,7 @@ void drawSingleTriangle(int width, int height, Vec2i * v, TGAImage &image, TGACo
 		for(P.y = 0; P.y <= height; P.y++)
 		{
 			Vec3i ret = crossProduct(v, P);
-
+			//不同向则不在三角形内
 			if(((ret.x>0)?((ret.y>0)?(ret.z>0):0):0) || ((ret.x<0)?((ret.y<0)?(ret.z<0):0):0))
 			{
 				image.set(P.x, P.y, color);
@@ -309,6 +309,87 @@ void drawSingleTriangle(int width, int height, Vec2i * v, TGAImage &image, TGACo
 
 	}
 }
+
+Vec2i* FindBoundingBox(int width, int height, Vec2i *v)
+{
+	Vec2i* bbox = new Vec2i[2];
+	bbox[0] = {width - 1, height - 1};
+	bbox[1] = {0, 0};
+	Vec2i bboxmin(width - 1, height - 1);
+	Vec2i bboxmax(0, 0);
+	Vec2i bboxtmp(width - 1, height - 1);
+	for(int i = 0; i < 3; i++)
+	{
+		bbox[0].x = std::min(bbox[0].x, v[i].x);
+		bbox[0].y = std::min(bbox[0].y, v[i].y);
+		bbox[1].x = std::min(bboxtmp.x, std::max(bbox[1].x, v[i].x));
+		bbox[1].y = std::min(bboxtmp.y, std::max(bbox[1].y, v[i].y));
+	}
+	return bbox;
+}
+
+//重心坐标
+Vec3f barycentric(Vec2i *v, Vec2i P)
+{
+	/*	(1-u-v)A + uB + vC = P
+	*	(e,f,g)==>	u=e/g,	v=f/g, 1=g/g
+	*	==>		(1-((e+f)/g), e/g, f/g)
+	*/
+	Vec3i x(v[1].x - v[0].x, v[2].x - v[0].x, v[0].x - P.x);
+	Vec3i y(v[1].y - v[0].y, v[2].y - v[0].y, v[0].y - P.y);
+
+	Vec3i u = x ^ y;
+
+	if(std::abs(u.z) < 1) {
+		return Vec3f(-1,1,1);
+	}
+	return Vec3f(1.f - (u.x + u.y) / (float)u.z, u.x / (float)u.z, u.y / (float)u.z);
+}
+
+//0.25ms
+void DrawTirange(int width, int height, Vec2i * v, TGAImage &image, TGAColor color)
+{
+	Vec2i P;
+
+	Vec2i* box = FindBoundingBox(width, height, v);
+
+	for(P.x = box[0].x; P.x <= box[1].x; P.x++)
+	{
+		for(P.y = box[0].y; P.y <= box[1].y; P.y++)
+		{
+			Vec3f ret = barycentric(v, P);
+			if(ret.x > 0 && ret.y > 0 && ret.z > 0)
+			{
+				image.set(P.x, P.y, color);
+			}
+		}
+
+	}
+	delete[] box;
+}
+
+//1.525ms
+void DrawTirange_nobbox(int width, int height, Vec2i * v, TGAImage &image, TGAColor color)
+{
+	Vec2i P;
+
+	//Vec2i* box = FindBoundingBox(width, height, v);
+
+	for(P.x = 0; P.x <= width - 1; P.x++)
+	{
+		for(P.y = 0; P.y <= height - 1; P.y++)
+		{
+			Vec3f ret = barycentric(v, P);
+			if(ret.x > 0 && ret.y > 0 && ret.z > 0)
+			{
+				image.set(P.x, P.y, color);
+			}
+		}
+
+	}
+	//delete[] box;
+}
+
 #if 0
 int main(int argc, char** argv) {
 	TGAImage image(100, 100, TGAImage::RGB);
@@ -389,8 +470,13 @@ int main(int argc, char** argv) {
 	Vec2i v1[3] = {Vec2i(10, 70),   Vec2i(50, 160),  Vec2i(70, 80)};
 	//Vec2i v2[3] = {Vec2i(180, 50),  Vec2i(150, 1),   Vec2i(70, 180)};
 	//Vec2i v3[3] = {Vec2i(180, 150), Vec2i(120, 160), Vec2i(130, 180)};
-
-	drawSingleTriangle(width, height, v1, image, red);
+	clock_t start, finish;
+	start = clock();
+	//DrawTirange_nobbox(width, height, v1, image, red);
+	DrawTirange(width, height, v1, image, red);
+	finish = clock();
+	double duration = (double)(finish - start) / 1000;
+	std::cout << "draw time: " << duration << "ms"<< std::endl;
 	//triangle(v2, width, height, image, white);
 	//triangle(v3, width, height, image, green);
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
