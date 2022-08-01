@@ -358,7 +358,7 @@ void DrawTirange(int width, int height, Vec2i * v, TGAImage &image, TGAColor col
 		for(P.y = box[0].y; P.y <= box[1].y; P.y++)
 		{
 			Vec3f ret = barycentric(v, P);
-			if(ret.x > 0 && ret.y > 0 && ret.z > 0)
+			if(ret.x >= 0 && ret.y >= 0 && ret.z >= 0)
 			{
 				image.set(P.x, P.y, color);
 			}
@@ -463,6 +463,8 @@ int main(int argc, char** argv) {
 	return 0;
 }
 #endif
+
+#if 0
 int main(int argc, char** argv) {
 	const int width  = 200;
 	const int height = 200;
@@ -482,4 +484,86 @@ int main(int argc, char** argv) {
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
     image.write_tga_file("output.tga");
 	return 0;
+}
+#endif
+
+#if 0
+//三角形随机颜色
+int main(int argc, char** argv) {
+    /*if (2==argc) {
+        model = new Model(argv[1]);
+    } else {
+        model = new Model("obj/african_head.obj");
+    }*/
+	Model *model = NULL;
+	model = new Model("obj/african_head.obj");
+	const int width  = 800;
+	const int height = 800;
+
+    TGAImage image(width, height, TGAImage::RGB);
+    // 循环模型里的所有三角形
+	for (int i = 0; i < model->nfaces(); i++) {
+		std::vector<int> face = model->face(i);
+		Vec2i v1[3];
+		// 循环三角形三个顶点，每两个顶点连一条线
+		for (int j = 0; j < 3; j++) {
+
+			Vec3f v = model->vert(face[j]);
+			v1[j] = Vec2i((v.x + 1.) * width / 2., (v.y + 1.) * height / 2.);
+			//v1[j] = Vec2i(v.x, v.y);
+		}
+		DrawTirange(width, height, v1, image, TGAColor(rand()%255, rand()%255, rand()%255, 255));
+	}
+    image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+    image.write_tga_file("output.tga");
+    delete model;
+    return 0;
+}
+#endif
+
+// 三角形光照
+int main(int argc, char** argv) {
+    /*if (2==argc) {
+        model = new Model(argv[1]);
+    } else {
+        model = new Model("obj/african_head.obj");
+    }*/
+	Model *model = NULL;
+	model = new Model("obj/african_head.obj");
+	const int width  = 800;
+	const int height = 800;
+
+    TGAImage image(width, height, TGAImage::RGB);
+
+	Vec3f light_dir(0,0,-1);	// 假设光是垂直屏幕的
+
+    // 循环模型里的所有三角形
+	for (int i = 0; i < model->nfaces(); i++) {
+		std::vector<int> face = model->face(i);
+		Vec2i v1[3];
+
+		Vec3f world_coords[3];
+		// 循环三角形三个顶点，每两个顶点连一条线
+		for (int j = 0; j < 3; j++) {
+
+			Vec3f v = model->vert(face[j]);
+			v1[j] = Vec2i((v.x + 1.) * width / 2., (v.y + 1.) * height / 2.);
+			world_coords[j] = v;
+			//v1[j] = Vec2i(v.x, v.y);
+		}
+
+		// 计算世界坐标中某个三角形的法线（法线 = 三角形任意两条边做叉乘）
+		Vec3f n = (world_coords[2] - world_coords[0]) ^ (world_coords[1] - world_coords[0]);
+		n.normalize();	// 对 n 做归一化处理
+
+		float intensity = n * light_dir;
+		if(intensity > 0)
+		{
+			DrawTirange(width, height, v1, image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
+		}
+	}
+    image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+    image.write_tga_file("output.tga");
+    delete model;
+    return 0;
 }
