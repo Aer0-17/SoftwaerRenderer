@@ -5,6 +5,7 @@
 #include <cmath>
 #include <iostream>
 #include <time.h>
+#include <limits>
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
 const TGAColor green   = TGAColor(0, 255,   0,   255);
@@ -310,14 +311,14 @@ void drawSingleTriangle(int width, int height, Vec2i * v, TGAImage &image, TGACo
 	}
 }
 
-Vec2i* FindBoundingBox(int width, int height, Vec2i *v)
+Vec2f* FindBoundingBox(int width, int height, Vec3f *v)
 {
-	Vec2i* bbox = new Vec2i[2];
+	Vec2f* bbox = new Vec2f[2];
 	bbox[0] = {width - 1, height - 1};
 	bbox[1] = {0, 0};
 	Vec2i bboxmin(width - 1, height - 1);
 	Vec2i bboxmax(0, 0);
-	Vec2i bboxtmp(width - 1, height - 1);
+	Vec2f bboxtmp(width - 1, height - 1);
 	for(int i = 0; i < 3; i++)
 	{
 		bbox[0].x = std::min(bbox[0].x, v[i].x);
@@ -329,7 +330,7 @@ Vec2i* FindBoundingBox(int width, int height, Vec2i *v)
 }
 
 //重心坐标
-Vec3f barycentric(Vec2i *v, Vec2i P)
+Vec3f barycentric(Vec3f *v, Vec3f P)
 {
 	/*	(1-u-v)A + uB + vC = P
 	*	(e,f,g)==>	u=e/g,	v=f/g, 1=g/g
@@ -347,11 +348,11 @@ Vec3f barycentric(Vec2i *v, Vec2i P)
 }
 
 //0.25ms
-void DrawTirange(int width, int height, Vec2i * v, TGAImage &image, TGAColor color)
+void DrawTirange(int width, int height, Vec3f * v, TGAImage &image, TGAColor color, float * zbuffer)
 {
-	Vec2i P;
+	Vec3f P;
 
-	Vec2i* box = FindBoundingBox(width, height, v);
+	Vec2f* box = FindBoundingBox(width, height, v);
 
 	for(P.x = box[0].x; P.x <= box[1].x; P.x++)
 	{
@@ -360,7 +361,16 @@ void DrawTirange(int width, int height, Vec2i * v, TGAImage &image, TGAColor col
 			Vec3f ret = barycentric(v, P);
 			if(ret.x >= 0 && ret.y >= 0 && ret.z >= 0)
 			{
-				image.set(P.x, P.y, color);
+				P.z = 0;
+				for(int j = 0; j < 3; ++j)
+				{
+					P.z += v[j].raw[2]  * ret.raw[j];
+				}
+				if(zbuffer[int(P.x + P.y * width)] < P.z)
+				{
+					zbuffer[int(P.x + P.y * width)] = P.z;
+					image.set(P.x, P.y, color);
+				}
 			}
 		}
 
@@ -368,6 +378,7 @@ void DrawTirange(int width, int height, Vec2i * v, TGAImage &image, TGAColor col
 	delete[] box;
 }
 
+#if 0
 //1.525ms
 void DrawTirange_nobbox(int width, int height, Vec2i * v, TGAImage &image, TGAColor color)
 {
@@ -389,6 +400,7 @@ void DrawTirange_nobbox(int width, int height, Vec2i * v, TGAImage &image, TGACo
 	}
 	//delete[] box;
 }
+#endif
 
 #if 0
 int main(int argc, char** argv) {
@@ -537,17 +549,23 @@ int main(int argc, char** argv) {
 
 	Vec3f light_dir(0,0,-1);	// 假设光是垂直屏幕的
 
+	float *zbuffer = new float[width * height];
+	for(int i = 0; i < width * height; ++i)
+	{
+		zbuffer[i] = -std::numeric_limits<float>::max();
+	}
+
     // 循环模型里的所有三角形
 	for (int i = 0; i < model->nfaces(); i++) {
 		std::vector<int> face = model->face(i);
-		Vec2i v1[3];
+		Vec3f v1[3];
 
 		Vec3f world_coords[3];
 		// 循环三角形三个顶点，每两个顶点连一条线
 		for (int j = 0; j < 3; j++) {
 
 			Vec3f v = model->vert(face[j]);
-			v1[j] = Vec2i((v.x + 1.) * width / 2., (v.y + 1.) * height / 2.);
+			v1[j] = Vec3f(int((v.x + 1.0) * width / 2.0 + 0.5), int((v.y + 1.0) * height / 2.0 + 0.5), v.z);
 			world_coords[j] = v;
 			//v1[j] = Vec2i(v.x, v.y);
 		}
@@ -559,11 +577,12 @@ int main(int argc, char** argv) {
 		float intensity = n * light_dir;
 		if(intensity > 0)
 		{
-			DrawTirange(width, height, v1, image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255));
+			DrawTirange(width, height, v1, image, TGAColor(intensity * 255, intensity * 255, intensity * 255, 255), zbuffer);
 		}
 	}
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
     image.write_tga_file("output.tga");
+	delete zbuffer;
     delete model;
     return 0;
 }
